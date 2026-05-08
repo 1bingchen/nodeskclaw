@@ -20,14 +20,17 @@ interface EngineVersion {
   created_at: string
 }
 
+interface RuntimeOption {
+  runtime_id: string
+  display_name: string
+  display_powered_by?: string
+  order?: number
+}
+
 const loading = ref(false)
 const versions = ref<EngineVersion[]>([])
 const selectedRuntime = ref('openclaw')
-const runtimeOptions = [
-  { id: 'openclaw', label: 'OpenClaw' },
-  { id: 'nanobot', label: 'NanoBot' },
-  { id: 'hermes', label: 'Hermes' },
-]
+const runtimeOptions = ref<RuntimeOption[]>([])
 
 const showPublishDialog = ref(false)
 const publishForm = ref({ version: '', image_tag: '', release_notes: '' })
@@ -36,35 +39,76 @@ const registryTags = ref<string[]>([])
 const loadingTags = ref(false)
 const tagDropdownOpen = ref(false)
 
+async function fetchRuntimeOptions() {
+  try {
+    const res = await api.get('/engines')
+    runtimeOptions.value = res.data.data ?? []
+    if (runtimeOptions.value.length > 0 && !runtimeOptions.value.some(rt => rt.runtime_id === selectedRuntime.value)) {
+      selectedRuntime.value = runtimeOptions.value[0].runtime_id
+    }
+  } catch {
+    runtimeOptions.value = []
+  }
+}
+
+function resetPublishState() {
+  showPublishDialog.value = false
+  publishForm.value = { version: '', image_tag: '', release_notes: '' }
+  registryTags.value = []
+  loadingTags.value = false
+  tagDropdownOpen.value = false
+}
+
 async function fetchVersions() {
   loading.value = true
+  const runtime = selectedRuntime.value
   try {
-    const res = await api.get('/engine-versions', { params: { runtime: selectedRuntime.value } })
-    versions.value = res.data.data ?? []
+    const res = await api.get('/engine-versions', { params: { runtime } })
+    if (runtime === selectedRuntime.value) {
+      versions.value = res.data.data ?? []
+    }
   } catch {
-    versions.value = []
+    if (runtime === selectedRuntime.value) {
+      versions.value = []
+    }
   } finally {
-    loading.value = false
+    if (runtime === selectedRuntime.value) {
+      loading.value = false
+    }
   }
 }
 
 async function fetchRegistryTags() {
   loadingTags.value = true
+  const runtime = selectedRuntime.value
   try {
-    const res = await api.get('/registry/tags', { params: { runtime: selectedRuntime.value } })
+    const res = await api.get('/registry/tags', { params: { runtime } })
     const tags = (res.data.data ?? []) as { tag: string }[]
-    registryTags.value = tags.map(t => t.tag)
+    if (runtime === selectedRuntime.value) {
+      registryTags.value = tags.map(t => t.tag)
+    }
   } catch {
-    registryTags.value = []
+    if (runtime === selectedRuntime.value) {
+      registryTags.value = []
+    }
   } finally {
-    loadingTags.value = false
+    if (runtime === selectedRuntime.value) {
+      loadingTags.value = false
+    }
   }
 }
 
 function openPublishDialog() {
-  publishForm.value = { version: '', image_tag: '', release_notes: '' }
+  resetPublishState()
   showPublishDialog.value = true
   fetchRegistryTags()
+}
+
+async function selectRuntime(runtimeId: string) {
+  if (selectedRuntime.value === runtimeId) return
+  selectedRuntime.value = runtimeId
+  resetPublishState()
+  await fetchVersions()
 }
 
 function selectTag(tag: string) {
@@ -123,7 +167,10 @@ async function remove(id: string) {
   }
 }
 
-onMounted(fetchVersions)
+onMounted(async () => {
+  await fetchRuntimeOptions()
+  await fetchVersions()
+})
 </script>
 
 <template>
@@ -137,28 +184,30 @@ onMounted(fetchVersions)
       <div class="inline-flex rounded-lg border border-border bg-card p-1">
         <button
           v-for="rt in runtimeOptions"
-          :key="rt.id"
+          :key="rt.runtime_id"
           class="px-3 py-1.5 rounded-md text-sm transition-colors"
-          :class="selectedRuntime === rt.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
-          @click="selectedRuntime = rt.id; fetchVersions()"
+          :class="selectedRuntime === rt.runtime_id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+          @click="selectRuntime(rt.runtime_id)"
         >
-          {{ rt.label }}
+          {{ rt.display_name }}
         </button>
       </div>
-      <button
-        class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        :disabled="loading"
-        @click="fetchVersions"
-      >
-        <RefreshCw class="w-3.5 h-3.5" :class="loading ? 'animate-spin' : ''" />
-      </button>
-      <button
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors"
-        @click="openPublishDialog"
-      >
-        <Plus class="w-4 h-4" />
-        {{ t('orgSettings.engineVersionsPublish') }}
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          :disabled="loading"
+          @click="fetchVersions"
+        >
+          <RefreshCw class="w-3.5 h-3.5" :class="loading ? 'animate-spin' : ''" />
+        </button>
+        <button
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm hover:bg-primary/90 transition-colors"
+          @click="openPublishDialog"
+        >
+          <Plus class="w-4 h-4" />
+          {{ t('orgSettings.engineVersionsPublish') }}
+        </button>
+      </div>
     </div>
 
     <div v-if="loading" class="flex justify-center py-8">

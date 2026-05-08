@@ -854,11 +854,11 @@ const enUS = {
     deleteImpactK8s: "The AI employee and its Kubernetes resources will be permanently deleted",
     deleteImpactData: "All conversation history and office data will be lost",
     deleteImpactIrreversible: "This action cannot be undone",
-    engineOpenclawName: "General Work Engine",
+    engineOpenclawName: "General Employee Engine",
     engineOpenclawDesc: "Supports tool calling, gene system, and multi-skill management",
     engineNanobotName: "Light Work Engine",
     engineNanobotDesc: "Ultra-lightweight and fast for simple chat scenarios",
-    engineHermesName: "Hermes Runtime",
+    engineHermesName: "Self-Evolving Employee Engine",
     engineHermesDesc: "General-purpose runtime for long-running agents",
     skillEditor: {
       title: "Role & Prompts",

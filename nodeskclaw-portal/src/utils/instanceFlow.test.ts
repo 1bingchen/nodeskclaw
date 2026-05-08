@@ -15,11 +15,11 @@ const messages: Record<string, string> = {
   'createInstance.specMediumDesc': 'Standard work',
   'createInstance.specLargeLabel': 'Large',
   'createInstance.specLargeDesc': 'Heavy work',
-  'instanceDetail.engineOpenclawName': 'General Engine',
+  'instanceDetail.engineOpenclawName': 'General Employee Engine',
   'instanceDetail.engineOpenclawDesc': 'Tool-heavy engine',
   'instanceDetail.engineNanobotName': 'Light Engine',
   'instanceDetail.engineNanobotDesc': 'Fast lightweight engine',
-  'instanceDetail.engineHermesName': 'Hermes Runtime',
+  'instanceDetail.engineHermesName': 'Self-Evolving Employee Engine',
   'instanceDetail.engineHermesDesc': 'Long-running agent engine',
   'engine.defaultTag': 'Default',
   'deployProgress.stepPreflight': 'Preflight',
@@ -65,12 +65,12 @@ describe('instanceFlow', () => {
 
   it('builds localized engine info', () => {
     expect(buildEngineInfoMap(t).openclaw).toMatchObject({
-      name: 'General Engine',
+      name: 'General Employee Engine',
       description: 'Tool-heavy engine',
       tags: ['Default'],
     })
     expect(buildEngineInfoMap(t).hermes).toMatchObject({
-      name: 'Hermes Runtime',
+      name: 'Self-Evolving Employee Engine',
       description: 'Long-running agent engine',
       poweredBy: 'Hermes Agent',
       tags: [],
