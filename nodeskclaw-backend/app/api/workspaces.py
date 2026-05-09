@@ -1612,7 +1612,7 @@ async def list_workspace_messages(
             "sender_name": m.sender_name,
             "content": msg_service.visible_message_content(m),
             "message_type": m.message_type,
-            "conversation_id": m.conversation_id,
+            "conversation_id": getattr(m, "conversation_id", None),
             "attachments": m.attachments,
             "created_at": m.created_at.isoformat() if m.created_at else None,
         }
