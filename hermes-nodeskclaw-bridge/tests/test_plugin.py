@@ -317,7 +317,12 @@ def test_shared_files_tool_returns_error_without_workspace(monkeypatch):
 
 # ── _ThinkingPreambleFilter tests ─────────────────────
 
-from hermes_nodeskclaw_bridge.hermes_channel import _ThinkingPreambleFilter
+from hermes_nodeskclaw_bridge.hermes_channel import (
+    _ThinkingPreambleFilter,
+    _build_learning_prompt,
+    _extract_learning_result,
+    _failed_learning_result,
+)
 
 
 def test_filter_strips_english_preamble():
@@ -358,3 +363,51 @@ def test_filter_handles_mixed_preamble():
     result = f.feed("好的，这是我的回复。And some English after.")
     assert result.startswith("好的")
     assert "And some English after." in result
+
+
+# ── learning.task tests ─────────────────────────────
+
+
+def test_extract_learning_result_parses_fenced_json_with_think(monkeypatch):
+    monkeypatch.setenv("NODESKCLAW_INSTANCE_ID", "inst-env")
+    task = {"task_id": "task-1", "mode": "learn"}
+    raw = "<think>internal</think>```json\n{\n  \"decision\": \"learned\",\n  \"content\": \"---\\nname: demo\",\n  \"self_eval\": 0.8,\n  \"reason\": \"ok\"\n}\n```"
+
+    result = _extract_learning_result(task, raw)
+
+    assert result["task_id"] == "task-1"
+    assert result["instance_id"] == "inst-env"
+    assert result["mode"] == "learn"
+    assert result["decision"] == "learned"
+    assert result["self_eval"] == 0.8
+
+
+def test_extract_learning_result_parses_json_after_preamble():
+    task = {"task_id": "task-2", "instance_id": "inst-2", "mode": "create"}
+    raw = "I will return the JSON now. {\"decision\": \"created\", \"meta\": {\"gene_slug\": \"demo\"}}"
+
+    result = _extract_learning_result(task, raw)
+
+    assert result["task_id"] == "task-2"
+    assert result["instance_id"] == "inst-2"
+    assert result["decision"] == "created"
+    assert result["meta"]["gene_slug"] == "demo"
+
+
+def test_failed_learning_result_uses_forget_failed_for_forget_tasks():
+    result = _failed_learning_result({"task_id": "task-3", "instance_id": "inst-3", "mode": "forget"}, "bad")
+
+    assert result == {
+        "task_id": "task-3",
+        "instance_id": "inst-3",
+        "mode": "forget",
+        "decision": "forget_failed",
+        "reason": "bad",
+    }
+
+
+def test_build_learning_prompt_does_not_use_openclaw_send_command():
+    prompt = _build_learning_prompt({"task_id": "task-4", "mode": "learn", "gene_slug": "demo"})
+
+    assert "Return only JSON" in prompt
+    assert "send -t learning" not in prompt

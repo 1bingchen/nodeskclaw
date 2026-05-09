@@ -22,17 +22,38 @@ class FakeFS:
 
 
 @pytest.mark.asyncio
-async def test_hermes_gene_adapter_writes_skills_and_scripts_to_hermes_home():
+async def test_hermes_gene_adapter_writes_runtime_paths_and_cleans_legacy_path():
     fs = FakeFS()
     adapter = HermesGeneInstallAdapter()
 
-    await adapter.deploy_skill(fs, "nodeskclaw-shared-files", "Body", "Shared files")
-    await adapter.deploy_scripts(fs, {"deskclaw_shared_files.py": "print('ok')"})
-    await adapter.invalidate_cache(fs, "nodeskclaw-shared-files")
+    await adapter.deploy_skill(
+        fs,
+        "team-culture-concise",
+        "Use ~/.deskclaw/tools/example.py",
+        "Concise culture",
+    )
+    await adapter.deploy_scripts(fs, {"tool.py": "print('ok')"})
+    await adapter.invalidate_cache(fs, "team-culture-concise")
 
-    assert ".hermes/skills/nodeskclaw-shared-files" in fs.dirs
-    assert fs.files[".hermes/skills/nodeskclaw-shared-files/SKILL.md"].startswith("---\n")
-    assert fs.files[".hermes/scripts/deskclaw_shared_files.py"] == "print('ok')"
+    assert ".hermes/skills/team-culture-concise" in fs.dirs
+    assert ".hermes/scripts" in fs.dirs
+    assert ".deskclaw/skills/team-culture-concise" in fs.removed
+    assert ".hermes/.skills_prompt_snapshot.json" in fs.removed
+    assert fs.files[".hermes/skills/team-culture-concise/SKILL.md"].startswith("---\n")
+    assert "~/.hermes/scripts/example.py" in fs.files[".hermes/skills/team-culture-concise/SKILL.md"]
+    assert fs.files[".hermes/scripts/tool.py"] == "print('ok')"
+
+
+@pytest.mark.asyncio
+async def test_hermes_gene_adapter_remove_skill_cleans_active_and_legacy_paths():
+    fs = FakeFS()
+    adapter = HermesGeneInstallAdapter()
+
+    await adapter.remove_skill(fs, "team-culture-concise")
+    await adapter.post_remove_cleanup(fs, "team-culture-concise")
+
+    assert ".hermes/skills/team-culture-concise" in fs.removed
+    assert ".deskclaw/skills/team-culture-concise" in fs.removed
     assert ".hermes/.skills_prompt_snapshot.json" in fs.removed
 
 

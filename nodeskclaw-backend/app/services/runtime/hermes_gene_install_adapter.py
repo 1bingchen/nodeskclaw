@@ -13,24 +13,27 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _normalize_skill_content(content: str) -> str:
-    return content.replace("~/.deskclaw/tools", "~/.hermes/scripts")
-
-
 class HermesGeneInstallAdapter(GeneInstallAdapter):
     def __init__(
         self,
         skills_dir_rel: str = ".hermes/skills",
         scripts_dir_rel: str = ".hermes/scripts",
         snapshot_rel: str = ".hermes/.skills_prompt_snapshot.json",
+        legacy_skills_dir_rel: str = ".deskclaw/skills",
     ):
         self._skills_dir = skills_dir_rel
         self._scripts_dir = scripts_dir_rel
         self._snapshot_rel = snapshot_rel
+        self._legacy_skills_dir = legacy_skills_dir_rel
 
     async def deploy_skill(
-        self, fs: RemoteFS, skill_name: str, content: str, description: str = "",
+        self,
+        fs: RemoteFS,
+        skill_name: str,
+        content: str,
+        description: str = "",
     ) -> None:
+        await fs.remove(f"{self._legacy_skills_dir}/{skill_name}")
         content = _normalize_skill_content(content)
         if not content.lstrip().startswith("---"):
             desc = description or f"Skill: {skill_name}"
@@ -41,7 +44,7 @@ class HermesGeneInstallAdapter(GeneInstallAdapter):
 
     async def allow_tools(self, fs: RemoteFS, tool_names: list[str]) -> None:
         if tool_names:
-            logger.debug("HermesGeneInstallAdapter: tool_allow is prompt/skill driven: %s", tool_names)
+            logger.info("HermesGeneInstallAdapter: ignoring OpenClaw tool_allow entries: %s", tool_names)
 
     async def deploy_scripts(self, fs: RemoteFS, scripts: dict[str, str]) -> None:
         if not scripts:
@@ -52,8 +55,8 @@ class HermesGeneInstallAdapter(GeneInstallAdapter):
 
     async def apply_config(self, fs: RemoteFS, config_patch: dict) -> None:
         if config_patch:
-            logger.debug(
-                "HermesGeneInstallAdapter: runtime config patch is not supported yet: %s",
+            logger.info(
+                "HermesGeneInstallAdapter: ignoring OpenClaw runtime config patch: %s",
                 list(config_patch.keys()),
             )
 
@@ -62,6 +65,11 @@ class HermesGeneInstallAdapter(GeneInstallAdapter):
 
     async def remove_skill(self, fs: RemoteFS, skill_name: str) -> None:
         await fs.remove(f"{self._skills_dir}/{skill_name}")
+        await fs.remove(f"{self._legacy_skills_dir}/{skill_name}")
 
     async def post_remove_cleanup(self, fs: RemoteFS, skill_name: str) -> None:
         await fs.remove(self._snapshot_rel)
+
+
+def _normalize_skill_content(content: str) -> str:
+    return content.replace("~/.deskclaw/tools", "~/.hermes/scripts")

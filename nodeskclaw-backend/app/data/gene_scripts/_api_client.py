@@ -39,7 +39,6 @@ def _discover_from_openclaw_config() -> tuple[str, str, str]:
 
 
 def _discover_from_hermes_context() -> tuple[str, str, str]:
-    """Fall back to Hermes environment and session filenames when env vars are missing."""
     api = os.environ.get("NODESKCLAW_API_URL", "")
     tok = os.environ.get("NODESKCLAW_TOKEN", "") or os.environ.get("GATEWAY_TOKEN", "")
     ws = os.environ.get("NODESKCLAW_WORKSPACE_ID", "") or os.environ.get("DESKCLAW_WORKSPACE_ID", "")
@@ -47,13 +46,12 @@ def _discover_from_hermes_context() -> tuple[str, str, str]:
         return api, tok, ws
 
     session_dir = os.path.expanduser("~/.hermes/sessions")
-    candidates = []
+    candidates: list[str] = []
     for pattern in ("session_workspace:*.json", "request_dump_workspace:*.json"):
         candidates.extend(glob.glob(os.path.join(session_dir, pattern)))
-    candidates.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    candidates.sort(key=lambda path: os.path.getmtime(path), reverse=True)
     for path in candidates:
-        name = os.path.basename(path)
-        match = re.search(r"workspace:([0-9A-Za-z_-]+)", name)
+        match = re.search(r"workspace:([0-9A-Za-z_-]+)", os.path.basename(path))
         if match:
             ws = match.group(1)
             break
