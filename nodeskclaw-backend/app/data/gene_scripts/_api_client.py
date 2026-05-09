@@ -9,8 +9,10 @@ Authentication via environment variables:
 
 from __future__ import annotations
 
+import glob
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -36,11 +38,46 @@ def _discover_from_openclaw_config() -> tuple[str, str, str]:
     return api, tok, ws
 
 
-_oc_api, _oc_tok, _oc_ws = _discover_from_openclaw_config()
+def _discover_from_hermes_context() -> tuple[str, str, str]:
+    """Fall back to Hermes environment and session filenames when env vars are missing."""
+    api = os.environ.get("NODESKCLAW_API_URL", "")
+    tok = os.environ.get("NODESKCLAW_TOKEN", "") or os.environ.get("GATEWAY_TOKEN", "")
+    ws = os.environ.get("NODESKCLAW_WORKSPACE_ID", "") or os.environ.get("DESKCLAW_WORKSPACE_ID", "")
+    if ws:
+        return api, tok, ws
 
-API_URL = os.environ.get("DESKCLAW_API_URL") or os.environ.get("NODESKCLAW_API_URL") or _oc_api or "http://localhost:4510/api/v1"
-TOKEN = os.environ.get("DESKCLAW_TOKEN") or os.environ.get("NODESKCLAW_TOKEN") or _oc_tok or ""
-WORKSPACE_ID = os.environ.get("DESKCLAW_WORKSPACE_ID") or os.environ.get("NODESKCLAW_WORKSPACE_ID") or _oc_ws or ""
+    session_dir = os.path.expanduser("~/.hermes/sessions")
+    candidates = []
+    for pattern in ("session_workspace:*.json", "request_dump_workspace:*.json"):
+        candidates.extend(glob.glob(os.path.join(session_dir, pattern)))
+    candidates.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    for path in candidates:
+        name = os.path.basename(path)
+        match = re.search(r"workspace:([0-9A-Za-z_-]+)", name)
+        if match:
+            ws = match.group(1)
+            break
+    return api, tok, ws
+
+
+_oc_api, _oc_tok, _oc_ws = _discover_from_openclaw_config()
+_hm_api, _hm_tok, _hm_ws = _discover_from_hermes_context()
+
+API_URL = (
+    os.environ.get("DESKCLAW_API_URL")
+    or os.environ.get("NODESKCLAW_API_URL")
+    or _oc_api
+    or _hm_api
+    or "http://localhost:4510/api/v1"
+)
+TOKEN = os.environ.get("DESKCLAW_TOKEN") or os.environ.get("NODESKCLAW_TOKEN") or _oc_tok or _hm_tok or ""
+WORKSPACE_ID = (
+    os.environ.get("DESKCLAW_WORKSPACE_ID")
+    or os.environ.get("NODESKCLAW_WORKSPACE_ID")
+    or _oc_ws
+    or _hm_ws
+    or ""
+)
 
 
 def _ws_base() -> str:

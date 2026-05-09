@@ -14,9 +14,11 @@ import time
 import uuid
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urljoin
 
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
+from app.core.config import get_nodeskclaw_webhook_base_url, settings
 from app.services.runtime.messaging.envelope import MessageEnvelope
 from app.services.runtime.transport.base import DeliveryResult
 from app.services.agent_output_sanitizer import (
@@ -57,6 +59,15 @@ def _parse_delegation(response: str) -> tuple[str, str] | None:
     return None
 
 
+def _attachment_download_url(url: str) -> str:
+    if not url:
+        return ""
+    if url.startswith(("http://", "https://")):
+        return url
+    base = get_nodeskclaw_webhook_base_url() or settings.AGENT_API_BASE_URL
+    return urljoin(base.rstrip("/") + "/", url.lstrip("/"))
+
+
 def _format_attachment_refs(attachments: list[dict]) -> str:
     if not attachments:
         return ""
@@ -66,6 +77,7 @@ def _format_attachment_refs(attachments: list[dict]) -> str:
         size = att.get("size", 0)
         ct = att.get("content_type", "")
         fid = att.get("id", "")
+        url = _attachment_download_url(str(att.get("url") or ""))
         if size >= 1024 * 1024:
             size_str = f"{size / (1024 * 1024):.1f}MB"
         elif size >= 1024:
@@ -75,8 +87,10 @@ def _format_attachment_refs(attachments: list[dict]) -> str:
         parts = [name, size_str]
         if ct:
             parts.append(ct)
+        if url:
+            parts.append(f"download_url: {url}")
         lines.append(f"[附件{idx}: {', '.join(parts)}, file_id: {fid}]")
-    lines.append("(可使用 nodeskclaw_file_download 工具下载附件到工作台)")
+    lines.append("(可使用 nodeskclaw_file_download 工具，或用 terminal/curl 访问 download_url 读取附件)")
     return "\n".join(lines)
 
 
