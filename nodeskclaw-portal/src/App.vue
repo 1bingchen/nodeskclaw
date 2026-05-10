@@ -84,7 +84,7 @@ function onLocaleChange(value: string) {
             </Badge>
           </div>
           <nav v-if="!isSetupPage" class="flex items-center gap-1 overflow-x-auto min-w-0">
-            <button
+            <Button variant="unstyled" size="unstyled"
               :class="[
                 'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-sm transition-colors',
                 (route.path === '/' || route.path.startsWith('/workspace')) && !route.path.startsWith('/instances') ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:text-foreground',
@@ -94,8 +94,8 @@ function onLocaleChange(value: string) {
               <Boxes class="w-4 h-4 inline mr-1.5" />
               <span class="hidden lg:inline">{{ t('common.workspace') }}</span>
               <span class="lg:hidden">{{ t('nav.workspace') }}</span>
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled" size="unstyled"
               :class="[
                 'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-sm transition-colors',
                 route.path.startsWith('/instances') ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:text-foreground',
@@ -104,8 +104,8 @@ function onLocaleChange(value: string) {
             >
               <Server class="w-4 h-4 inline mr-1.5" />
               {{ t('common.instance') }}
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled" size="unstyled"
               :class="[
                 'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-sm transition-colors',
                 route.path.startsWith('/gene-market') ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:text-foreground',
@@ -115,8 +115,8 @@ function onLocaleChange(value: string) {
               <FlaskConical class="w-4 h-4 inline mr-1.5" />
               <span class="hidden lg:inline">{{ t('common.geneMarket') }}</span>
               <span class="lg:hidden">{{ t('nav.geneMarket') }}</span>
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled" size="unstyled"
               v-if="isPerformanceEnabled"
               :class="[
                 'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-sm transition-colors',
@@ -127,8 +127,8 @@ function onLocaleChange(value: string) {
               <BarChart3 class="w-4 h-4 inline mr-1.5" />
               <span class="hidden lg:inline">{{ t('agentPerformance.navTitle') }}</span>
               <span class="lg:hidden">{{ t('nav.agentPerformance') }}</span>
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled" size="unstyled"
               v-if="authStore.user?.portal_org_role === 'admin'"
               :class="[
                 'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-md text-sm transition-colors',
@@ -139,7 +139,7 @@ function onLocaleChange(value: string) {
               <Settings class="w-4 h-4 inline mr-1.5" />
               <span class="hidden lg:inline">{{ t('orgSettings.navTitle') }}</span>
               <span class="lg:hidden">{{ t('nav.orgSettings') }}</span>
-            </button>
+            </Button>
           </nav>
         </div>
         <div class="flex items-center gap-3">
