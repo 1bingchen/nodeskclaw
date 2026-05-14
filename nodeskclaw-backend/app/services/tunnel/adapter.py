@@ -800,7 +800,7 @@ class TunnelAdapter:
                                 if hh:
                                     await _route_to_human(
                                         route_db, workspace_id,
-                                        target_node_id, agent_name, hh, full_response,
+                                        target_node_id, agent_name, hh, visible_full_response,
                                     )
                                 else:
                                     logger.warning(

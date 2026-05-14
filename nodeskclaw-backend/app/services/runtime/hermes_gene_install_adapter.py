@@ -72,4 +72,12 @@ class HermesGeneInstallAdapter(GeneInstallAdapter):
 
 
 def _normalize_skill_content(content: str) -> str:
-    return content.replace("~/.deskclaw/tools", "~/.hermes/scripts")
+    replacements = (
+        ("~/.deskclaw/tools", "~/.hermes/scripts"),
+        ("/root/.deskclaw/tools", "~/.hermes/scripts"),
+        (".deskclaw/tools", ".hermes/scripts"),
+    )
+    normalized = content
+    for old, new in replacements:
+        normalized = normalized.replace(old, new)
+    return normalized

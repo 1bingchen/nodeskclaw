@@ -29,7 +29,11 @@ async def test_hermes_gene_adapter_writes_runtime_paths_and_cleans_legacy_path()
     await adapter.deploy_skill(
         fs,
         "team-culture-concise",
-        "Use ~/.deskclaw/tools/example.py",
+        "\n".join([
+            "Use ~/.deskclaw/tools/example.py",
+            "Run /root/.deskclaw/tools/absolute.py",
+            "Keep .deskclaw/tools/relative.py",
+        ]),
         "Concise culture",
     )
     await adapter.deploy_scripts(fs, {"tool.py": "print('ok')"})
@@ -40,7 +44,11 @@ async def test_hermes_gene_adapter_writes_runtime_paths_and_cleans_legacy_path()
     assert ".deskclaw/skills/team-culture-concise" in fs.removed
     assert ".hermes/.skills_prompt_snapshot.json" in fs.removed
     assert fs.files[".hermes/skills/team-culture-concise/SKILL.md"].startswith("---\n")
-    assert "~/.hermes/scripts/example.py" in fs.files[".hermes/skills/team-culture-concise/SKILL.md"]
+    skill_content = fs.files[".hermes/skills/team-culture-concise/SKILL.md"]
+    assert "~/.hermes/scripts/example.py" in skill_content
+    assert "~/.hermes/scripts/absolute.py" in skill_content
+    assert ".hermes/scripts/relative.py" in skill_content
+    assert ".deskclaw/tools" not in skill_content
     assert fs.files[".hermes/scripts/tool.py"] == "print('ok')"
 
 

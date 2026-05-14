@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -22,6 +23,7 @@ _THINK_OPEN_RE = re.compile(r"<\s*(?:think(?:ing)?|thought|antthinking)\s*>", re
 _THINK_CLOSE_RE = re.compile(r"<\s*/\s*(?:think(?:ing)?|thought|antthinking)\s*>", re.I)
 
 _PREAMBLE_BUF_LIMIT = 2000
+_CALLBACK_RETRY_DELAYS = (0.5, 1.5)
 
 
 class HermesChannel:
@@ -421,10 +423,31 @@ def _failed_learning_result(task: dict[str, Any], reason: str) -> dict[str, Any]
 
 
 async def _post_learning_callback(callback_url: str, result: dict[str, Any]) -> None:
+    last_error: Exception | None = None
+    attempts = len(_CALLBACK_RETRY_DELAYS) + 1
     async with httpx.AsyncClient(timeout=60) as http:
-        response = await http.post(callback_url, headers={"Content-Type": "application/json"}, json=result)
-        if response.status_code >= 400:
-            raise RuntimeError(f"Learning callback failed: HTTP {response.status_code} {response.text[:300]}")
+        for attempt in range(1, attempts + 1):
+            try:
+                response = await http.post(callback_url, headers={"Content-Type": "application/json"}, json=result)
+                if response.status_code < 400:
+                    return
+                error = RuntimeError(f"Learning callback failed: HTTP {response.status_code} {response.text[:300]}")
+                if response.status_code != 429 and response.status_code < 500:
+                    raise error
+                last_error = error
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                last_error = exc
+
+            if attempt < attempts:
+                logger.warning(
+                    "Hermes learning callback attempt %d/%d failed: %s",
+                    attempt,
+                    attempts,
+                    last_error,
+                )
+                await asyncio.sleep(_CALLBACK_RETRY_DELAYS[attempt - 1])
+
+    raise RuntimeError(f"Learning callback failed after {attempts} attempts: {last_error}") from last_error
 
 def _extract_error_message(status_code: int, raw_body: bytes) -> str:
     default = f"Hermes API returned {status_code}"
